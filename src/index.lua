@@ -13,6 +13,7 @@ dofile("app0:modules/colors.lua")
 dofile("app0:modules/db.lua")
 
 GamesDB.init()
+GamesDB.scan()
 -- covers links
 local onlineCovers = "https://raw.githubusercontent.com/andiweli/hexflow-covers/main/Covers/PSVita/"
 local onlineCoversPSP = "https://raw.githubusercontent.com/andiweli/hexflow-covers/main/Covers/PSP/"
