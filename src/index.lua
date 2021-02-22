@@ -10,6 +10,9 @@ System.setCpuSpeed(cpu_speed)
 
 dofile("app0:modules/threads.lua")
 dofile("app0:modules/colors.lua")
+dofile("app0:modules/db.lua")
+
+GamesDB.init()
 -- covers links
 local onlineCovers = "https://raw.githubusercontent.com/andiweli/hexflow-covers/main/Covers/PSVita/"
 local onlineCoversPSP = "https://raw.githubusercontent.com/andiweli/hexflow-covers/main/Covers/PSP/"
@@ -168,7 +171,7 @@ function listDirectory(dir)
 	local str = System.readFile(file_over, filesize)
 	System.closeFile(file_over)
 
-    for i, file in pairs(dir) do
+    for _, file in pairs(dir) do
 	local custom_path, custom_path_id, app_type = nil, nil, nil
         if file.directory then
             -- get app name to match with custom cover file name
@@ -439,7 +442,7 @@ end
 --         theme = colors[0]
 --     end
 -- end
-function SetThemeColor()
+local function SetThemeColor()
     if themeColor == 1 then
         theme = Colors.red
     elseif themeColor == 2 then
@@ -471,7 +474,6 @@ SetThemeColor()
 -- end
 
 local lang_lines = {}
-local lang_default = "PS VITA\nHOMEBREWS\nPSP\nPS1\nALL\nSETTINGS\nLaunch\nDetails\nCategory\nView\nClose\nVersion\nAbout\nStartup Category\nReflection Effect\nSounds\nTheme Color\nCustom Background\nDownload Covers\nReload Covers Database\nLanguage\nON\nOFF\nRed\nYellow\nGreen\nGrey\nBlack\nPurple\nOrange\nBlue\nSelect"
 function ChangeLanguage()
     if #lang_lines>0 then
 	    for k in pairs (lang_lines) do
@@ -503,7 +505,7 @@ function ChangeLanguage()
 end
 ChangeLanguage()
 
-function PrintCentered(font, x, y, text, color, size)
+function PrintCentered(font, x, y, text, color, size) -- size refers to fontWeight
 	text = text:gsub("\n","")
 	local width = Font.getTextWidth(font,text)
     Font.print(font, x - width / 2, y, text, color)
@@ -1087,47 +1089,21 @@ local function DrawCover(x, y, text, icon, sel, apptype)
 end
 
 local FileLoad = {}
-
 function FreeIcons()
-    for k, v in pairs(files_table) do
+    local function freeIcons(table)
+        for k, v in pairs(files_table) do
         FileLoad[v] = nil
         Threads.remove(v)
         if v.ricon then
             Graphics.freeImage(v.ricon)
             v.ricon = nil
+        end    
         end
-    end
-    for k, v in pairs(games_table) do
-        FileLoad[v] = nil
-        Threads.remove(v)
-        if v.ricon then
-            Graphics.freeImage(v.ricon)
-            v.ricon = nil
-        end
-    end
-    for k, v in pairs(psp_table) do
-        FileLoad[v] = nil
-        Threads.remove(v)
-        if v.ricon then
-            Graphics.freeImage(v.ricon)
-            v.ricon = nil
-        end
-    end
-    for k, v in pairs(psx_table) do
-        FileLoad[v] = nil
-        Threads.remove(v)
-        if v.ricon then
-            Graphics.freeImage(v.ricon)
-            v.ricon = nil
-        end
-    end
-    for k, v in pairs(homebrews_table) do
-        FileLoad[v] = nil
-        Threads.remove(v)
-        if v.ricon then
-            Graphics.freeImage(v.ricon)
-            v.ricon = nil
-        end
+    freeIcons(files_table)
+    freeIcons(games_table)
+    freeIcons(psp_table)
+    freeIcons(psx_table)
+    freeIcons(homebrews_table)
     end
 end
 
@@ -1194,7 +1170,7 @@ while true do
 			Font.print(fnt20, 520+28-(string.len(lang_lines[10])*10), 508, lang_lines[10], Colors.white)--View
 		end
 		
-        Font.print(fnt22, 32, 34, lang_lines[showCat], Colors.white)--GAMES
+        Font.print(fnt22, 32, 34, lang_lines[showCat+1], Colors.white)--GAMES
         
         if Network.isWifiEnabled() then
             Graphics.drawImage(800, 38, imgWifi)-- wifi icon
