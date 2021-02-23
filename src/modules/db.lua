@@ -1,31 +1,35 @@
 GamesDB = {}
-local dbdirEntry = "ux0:/data/HexFlow/games.db"
-local db = Database.open(dbdirEntry)
+local dbFile = "ux0:/data/HexFlow/games.db"
 local app_dir = "ux0:/app"
 
 local covers_psv = "ux0:/data/HexFlow/COVERS/PSVITA/"
 local covers_psp = "ux0:/data/HexFlow/COVERS/PSP/"
 local covers_psx = "ux0:/data/HexFlow/COVERS/PSX/"
 
+local db = Database.open(dbFile)
+
 -- GamesDB.scanComplete
 function GamesDB.init()
 local res = Database.execQuery(db, [[CREATE TABLE IF NOT EXISTS GAMES(
-                                APPID  CHAR(10)   PRIMARY KEY NOT NULL,
-                                CAT    CHAR(4)    NOT NULL,
-                                TITLE  TEXT       NOT NULL,
-																ICON   TEXT       NOT NULL,
-                                COVER  TEXT       NOT NULL,
-																PIC    TEXT			  NOT NULL,
-																OVERR  INTEGER		DEFAULT 0
-															);]])
+APPID  CHAR(10)   PRIMARY KEY NOT NULL,
+CAT    CHAR(4)    NOT NULL,
+TITLE  TEXT       NOT NULL,
+ICON   TEXT       NOT NULL,
+COVER  TEXT       NOT NULL,
+PIC    TEXT			  NOT NULL,
+OVERR  INTEGER		DEFAULT 0
+);]])
+end
+function GamesDB.close()
+  Database.close(db)
 end
 -- scan app directory for games
 function GamesDB.scan()
   System.setMessage ("scanning library", false, BUTTON_NONE)
   local dir = System.listDirectory(app_dir)
-	local app ={}
   for _,dirEntry in pairs(dir) do
-		local custom_path, custom_path_id= nil, nil
+    local app ={}
+		local cover, coveralt= nil, nil
     if dirEntry.directory then
       -- get app name to match with custom cover dirEntry name
       if System.doesFileExist(app_dir .. "/" .. dirEntry.name .. "/sce_sys/param.sfo") then
@@ -35,30 +39,30 @@ function GamesDB.scan()
       end
 			if string.match(dirEntry.name, "PCS") and not string.match(dirEntry.name, "PCSI") then
         -- Scan PSVita Games
-        app.cover = covers_psv .. app.title .. ".png"
-        custom_path_id = covers_psv .. dirEntry.name .. ".png"
+        cover = covers_psv .. app.title .. ".png"
+        coveralt = covers_psv .. dirEntry.name .. ".png"
 				app.cat="VITA"
       elseif string.match(dirEntry.name, "NP") or string.match(dirEntry.name, "UL") or string.match(dirEntry.name, "UC") then
         -- Scan PSP Games
-        custom_path = covers_psp .. app.title .. ".png"
-        custom_path_id = covers_psp .. dirEntry.name .. ".png"
+        cover = covers_psp .. app.title .. ".png"
+        coveralt = covers_psp .. dirEntry.name .. ".png"
 				app.cat="PSP"	
       elseif string.match(dirEntry.name, "SC") or string.match(dirEntry.name, "SL") then
         -- Scan PSX Games
-        custom_path = covers_psx .. app.title .. ".png"
-        custom_path_id = covers_psx .. dirEntry.name .. ".png"
+        cover = covers_psx .. app.title .. ".png"
+        coveralt = covers_psx .. dirEntry.name .. ".png"
 				app.cat="PSX"
       else
         -- Scan Homebrews
-        custom_path = covers_psv .. app.title .. ".png"
-        custom_path_id = covers_psv .. dirEntry.name .. ".png"
+        cover = covers_psv .. app.title .. ".png"
+        coveralt = covers_psv .. dirEntry.name .. ".png"
 				app.cat="HB"
       end
     end
-		if custom_path and System.doesFileExist(custom_path) then
-			app.cover = custom_path --custom cover by app name
-		elseif custom_path_id and System.doesFileExist(custom_path_id) then
-			app.cover = custom_path_id --custom cover by app id
+		if cover and System.doesFileExist(cover) then
+			app.cover = cover --custom cover by app name
+		elseif coveralt and System.doesFileExist(coveralt) then
+			app.cover = coveralt --custom cover by app id
 		else
 			if System.doesFileExist("ur0:/appmeta/" .. dirEntry.name .. "/icon0.png") then
 				app.cover = "ur0:/appmeta/" .. dirEntry.name .. "/icon0.png"  --app icon
@@ -66,23 +70,17 @@ function GamesDB.scan()
 				app.cover = "app0:/DATA/noimg.png" --blank grey
 			end
 		end
-	
-	
-	
-	
-	--add blank icon to all
-	app.icon = "ur0:/appmeta/" .. app.titleid .. "/icon0.png"
-  app.pic = "ur0:/appmeta/" .. app.titleid .. "/pic0.png"
-	
-	Database.execQuery(db,"INSERT INTO GAMES(APPID,CAT,TITLE,ICON,COVER,PIC) VALUES("
-												.. app.titleid ..","..app.cat..","..app.title..","..app.icon..","..app.cover..","..app.pic..");")													
+    app.icon = "ur0:/appmeta/" .. app.titleid .. "/icon0.png"
+    app.pic = "ur0:/appmeta/" .. app.titleid .. "/pic0.png"
+    local query = string.format("INSERT INTO GAMES(APPID,CAT,TITLE,ICON,COVER,PIC) VALUES(%s,%s,%s,%s,%s,%s);",app.titleid,app.cat,app.title,app.icon,app.cover,app.pic)
+    Database.execQuery(db,query)
 	end
   System.closeMessage()
   System.setMessage ("scan complete", false,BUTTON_OK)
 end
 -- returns list of tables representing games
 function GamesDB.GetGames(category)
-  return Database.execQuery(db, "SELECT * FROM games."..category.." ORDER BY NAME DESC;") 
+  return Database.execQuery(db, "SELECT * FROM GAMES WHERE CAT IS PSV ORDER BY NAME DESC;") 
 end
 -- -- old code
 -- dirEntrys_table = {}
